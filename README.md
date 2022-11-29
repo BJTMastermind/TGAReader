@@ -73,17 +73,13 @@ public int createTGATexture() {
 }
 ```
 
-#### 4.2. Java Application
+#### 4.2. Swing Application
 
 Sample code to create a BufferedImage.
 
 ```java
 private static JLabel createTGALabel(String path) throws IOException {
-
-    FileInputStream fis = new FileInputStream(path);
-    byte[] buffer = new byte[fis.available()];
-    fis.read(buffer);
-    fis.close();
+    byte[] buffer = Files.readAllBytes(Paths.get(path));
 
     int[] pixels = TGAReader.read(buffer, TGAReader.ARGB);
     int width = TGAReader.getWidth(buffer);
@@ -114,7 +110,6 @@ import com.google.gwt.xhr.client.XMLHttpRequest;
 import com.google.gwt.xhr.client.XMLHttpRequest.ResponseType;
 
 private Canvas createImageCanvas(int[] pixels, int width, int height) {
-
     Canvas canvas = Canvas.createIfSupported();
     canvas.setCoordinateSpaceWidth(width);
     canvas.setCoordinateSpaceHeight(height);

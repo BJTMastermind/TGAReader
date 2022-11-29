@@ -18,6 +18,14 @@ package net.npe.tga;
 import java.io.IOException;
 
 public final class TGAReader {
+    private static final int COLORMAP = 1;
+    private static final int RGB = 2;
+    private static final int GRAYSCALE = 3;
+    private static final int COLORMAP_RLE = 9;
+    private static final int RGB_RLE = 10;
+    private static final int GRAYSCALE_RLE = 11;
+    private static final int RIGHT_ORIGIN = 0x10;
+    private static final int UPPER_ORIGIN = 0x20;
 
     public static final Order ARGB = new Order(16, 8, 0, 24);
     public static final Order ABGR = new Order(0, 8, 16, 24);
@@ -31,7 +39,6 @@ public final class TGAReader {
     }
 
     public static int[] read(byte[] buffer, Order order) throws IOException {
-
         // header
         // int idFieldLength = buffer[0] & 0xFF;
         // int colormapType = buffer[1] & 0xFF;
@@ -86,29 +93,20 @@ public final class TGAReader {
         return pixels;
     }
 
-    private static final int COLORMAP = 1;
-    private static final int RGB = 2;
-    private static final int GRAYSCALE = 3;
-    private static final int COLORMAP_RLE = 9;
-    private static final int RGB_RLE = 10;
-    private static final int GRAYSCALE_RLE = 11;
-
-    private static final int RIGHT_ORIGIN = 0x10;
-    private static final int UPPER_ORIGIN = 0x20;
-
     private static byte[] decodeRLE(int width, int height, int depth, byte[] buffer, int offset) {
-        int elementCount = depth/8;
+        int elementCount = depth / 8;
         byte[] elements = new byte[elementCount];
         int decodeBufferLength = elementCount * width * height;
         byte[] decodeBuffer = new byte[decodeBufferLength];
         int decoded = 0;
+
         while(decoded < decodeBufferLength) {
             int packet = buffer[offset++] & 0xFF;
             if((packet & 0x80) != 0) { // RLE
                 for(int i = 0; i < elementCount; i++) {
                     elements[i] = buffer[offset++];
                 }
-                int count = (packet&0x7F) + 1;
+                int count = (packet & 0x7F) + 1;
                 for(int i = 0; i < count; i++) {
                     for(int j = 0; j < elementCount; j++) {
                         decodeBuffer[decoded++] = elements[j];
@@ -130,24 +128,16 @@ public final class TGAReader {
         int gs = order.greenShift;
         int bs = order.blueShift;
         int as = order.alphaShift;
+
         switch(depth) {
             case 24:
-                pixels = new int[width*height];
+                pixels = new int[width * height];
                 if((descriptor & RIGHT_ORIGIN) != 0) {
                     if((descriptor & UPPER_ORIGIN) != 0) {
                         // UpperRight
                         for(int i = 0; i < height; i++) {
                             for(int j = 0; j < width; j++) {
-                                int colormapIndex = bytes[offset + width * i + j] & 0xFF - colormapOrigin;
-                                int color = 0xFFFFFFFF;
-                                if(colormapIndex >= 0) {
-                                    int index = 3 * colormapIndex + 18;
-                                    int b = palette[index + 0] & 0xFF;
-                                    int g = palette[index + 1] & 0xFF;
-                                    int r = palette[index + 2] & 0xFF;
-                                    int a = 0xFF;
-                                    color = (r << rs) | (g << gs) | (b << bs) | (a << as);
-                                }
+                                int color = getColorFromColormap(width, bytes, offset, 3, palette, colormapOrigin, i, j, rs, gs, bs, as);
                                 pixels[width * i + (width - j - 1)] = color;
                             }
                         }
@@ -155,16 +145,7 @@ public final class TGAReader {
                         // LowerRight
                         for(int i = 0; i < height; i++) {
                             for(int j = 0; j < width; j++) {
-                                int colormapIndex = bytes[offset + width * i + j] & 0xFF - colormapOrigin;
-                                int color = 0xFFFFFFFF;
-                                if(colormapIndex >= 0) {
-                                    int index = 3 * colormapIndex + 18;
-                                    int b = palette[index + 0] & 0xFF;
-                                    int g = palette[index + 1] & 0xFF;
-                                    int r = palette[index + 2] & 0xFF;
-                                    int a = 0xFF;
-                                    color = (r << rs) | (g << gs) | (b << bs) | (a << as);
-                                }
+                                int color = getColorFromColormap(width, bytes, offset, 3, palette, colormapOrigin, i, j, rs, gs, bs, as);
                                 pixels[width * (height - i - 1) + (width - j - 1)] = color;
                             }
                         }
@@ -174,16 +155,7 @@ public final class TGAReader {
                         // UpperLeft
                         for(int i = 0; i < height; i++) {
                             for(int j = 0; j < width; j++) {
-                                int colormapIndex = bytes[offset + width * i + j] & 0xFF - colormapOrigin;
-                                int color = 0xFFFFFFFF;
-                                if(colormapIndex >= 0) {
-                                    int index = 3 * colormapIndex + 18;
-                                    int b = palette[index + 0] & 0xFF;
-                                    int g = palette[index + 1] & 0xFF;
-                                    int r = palette[index + 2] & 0xFF;
-                                    int a = 0xFF;
-                                    color = (r << rs) | (g << gs) | (b << bs) | (a << as);
-                                }
+                                int color = getColorFromColormap(width, bytes, offset, 3, palette, colormapOrigin, i, j, rs, gs, bs, as);
                                 pixels[width * i + j] = color;
                             }
                         }
@@ -191,16 +163,7 @@ public final class TGAReader {
                         // LowerLeft
                         for(int i = 0; i < height; i++) {
                             for(int j = 0; j < width; j++) {
-                                int colormapIndex = bytes[offset + width * i + j] & 0xFF - colormapOrigin;
-                                int color = 0xFFFFFFFF;
-                                if(colormapIndex >= 0) {
-                                    int index = 3 * colormapIndex + 18;
-                                    int b = palette[index + 0] & 0xFF;
-                                    int g = palette[index + 1] & 0xFF;
-                                    int r = palette[index + 2] & 0xFF;
-                                    int a = 0xFF;
-                                    color = (r << rs) | (g << gs) | (b << bs) | (a << as);
-                                }
+                                int color = getColorFromColormap(width, bytes, offset, 3, palette, colormapOrigin, i, j, rs, gs, bs, as);
                                 pixels[width * (height - i - 1) + j] = color;
                             }
                         }
@@ -214,16 +177,7 @@ public final class TGAReader {
                         // UpperRight
                         for(int i = 0; i < height; i++) {
                             for(int j = 0; j < width; j++) {
-                                int colormapIndex = bytes[offset + width * i + j] & 0xFF - colormapOrigin;
-                                int color = 0xFFFFFFFF;
-                                if(colormapIndex >= 0) {
-                                    int index = 4 * colormapIndex + 18;
-                                    int b = palette[index + 0] & 0xFF;
-                                    int g = palette[index + 1] & 0xFF;
-                                    int r = palette[index + 2] & 0xFF;
-                                    int a = palette[index + 3] & 0xFF;
-                                    color = (r << rs) | (g << gs) | (b << bs) | (a << as);
-                                }
+                                int color = getColorFromColormap(width, bytes, offset, 4, palette, colormapOrigin, i, j, rs, gs, bs, as);
                                 pixels[width * i + (width - j - 1)] = color;
                             }
                         }
@@ -231,16 +185,7 @@ public final class TGAReader {
                         // LowerRight
                         for(int i = 0; i < height; i++) {
                             for(int j = 0; j < width; j++) {
-                                int colormapIndex = bytes[offset + width * i + j] & 0xFF - colormapOrigin;
-                                int color = 0xFFFFFFFF;
-                                if(colormapIndex >= 0) {
-                                    int index = 4 * colormapIndex + 18;
-                                    int b = palette[index + 0] & 0xFF;
-                                    int g = palette[index + 1] & 0xFF;
-                                    int r = palette[index + 2] & 0xFF;
-                                    int a = palette[index + 3] & 0xFF;
-                                    color = (r << rs) | (g << gs) | (b << bs) | (a << as);
-                                }
+                                int color = getColorFromColormap(width, bytes, offset, 4, palette, colormapOrigin, i, j, rs, gs, bs, as);
                                 pixels[width * (height - i - 1) + (width - j - 1)] = color;
                             }
                         }
@@ -250,16 +195,7 @@ public final class TGAReader {
                         // UpperLeft
                         for(int i = 0; i < height; i++) {
                             for(int j = 0; j < width; j++) {
-                                int colormapIndex = bytes[offset + width * i + j] & 0xFF - colormapOrigin;
-                                int color = 0xFFFFFFFF;
-                                if(colormapIndex >= 0) {
-                                    int index = 4 * colormapIndex + 18;
-                                    int b = palette[index + 0] & 0xFF;
-                                    int g = palette[index + 1] & 0xFF;
-                                    int r = palette[index + 2] & 0xFF;
-                                    int a = palette[index + 3] & 0xFF;
-                                    color = (r << rs) | (g << gs) | (b << bs) | (a << as);
-                                }
+                                int color = getColorFromColormap(width, bytes, offset, 4, palette, colormapOrigin, i, j, rs, gs, bs, as);
                                 pixels[width * i + j] = color;
                             }
                         }
@@ -267,16 +203,7 @@ public final class TGAReader {
                         // LowerLeft
                         for(int i = 0; i < height; i++) {
                             for(int j = 0; j < width; j++) {
-                                int colormapIndex = bytes[offset + width * i + j] & 0xFF - colormapOrigin;
-                                int color = 0xFFFFFFFF;
-                                if(colormapIndex >= 0) {
-                                    int index = 4 * colormapIndex + 18;
-                                    int b = palette[index + 0] & 0xFF;
-                                    int g = palette[index + 1] & 0xFF;
-                                    int r = palette[index + 2] & 0xFF;
-                                    int a = palette[index + 3] & 0xFF;
-                                    color = (r << rs) | (g << gs) | (b << bs) | (a << as);
-                                }
+                                int color = getColorFromColormap(width, bytes, offset, 4, palette, colormapOrigin, i, j, rs, gs, bs, as);
                                 pixels[width * (height - i - 1) + j] = color;
                             }
                         }
@@ -295,6 +222,7 @@ public final class TGAReader {
         int gs = order.greenShift;
         int bs = order.blueShift;
         int as = order.alphaShift;
+
         switch(depth) {
             case 24:
                 pixels = new int[width * height];
@@ -303,24 +231,16 @@ public final class TGAReader {
                         // UpperRight
                         for(int i = 0; i < height; i++) {
                             for(int j = 0; j < width; j++) {
-                                int index = offset + 3 * width * i + 3 * j;
-                                int b = bytes[index + 0] & 0xFF;
-                                int g = bytes[index + 1] & 0xFF;
-                                int r = bytes[index + 2] & 0xFF;
-                                int a = 0xFF;
-                                pixels[width * i + (width - j - 1)] = (r << rs) | (g << gs) | (b << bs) | (a << as);
+                                int color = getColorFromRGB(width, bytes, offset, 3, i, j, rs, gs, bs, as);
+                                pixels[width * i + (width - j - 1)] = color;
                             }
                         }
                     } else {
                         // LowerRight
                         for(int i = 0; i < height; i++) {
                             for(int j = 0; j < width; j++) {
-                                int index = offset + 3 * width * i + 3 * j;
-                                int b = bytes[index + 0] & 0xFF;
-                                int g = bytes[index + 1] & 0xFF;
-                                int r = bytes[index + 2] & 0xFF;
-                                int a = 0xFF;
-                                pixels[width * (height - i - 1) + (width - j - 1)] = (r << rs) | (g << gs) | (b << bs) | (a << as);
+                                int color = getColorFromRGB(width, bytes, offset, 3, i, j, rs, gs, bs, as);
+                                pixels[width * (height - i - 1) + (width - j - 1)] = color;
                             }
                         }
                     }
@@ -329,24 +249,16 @@ public final class TGAReader {
                         // UpperLeft
                         for(int i = 0; i < height; i++) {
                             for(int j = 0; j < width; j++) {
-                                int index = offset + 3 * width * i + 3 * j;
-                                int b = bytes[index + 0] & 0xFF;
-                                int g = bytes[index + 1] & 0xFF;
-                                int r = bytes[index + 2] & 0xFF;
-                                int a = 0xFF;
-                                pixels[width * i + j] = (r << rs) | (g << gs) | (b << bs) | (a << as);
+                                int color = getColorFromRGB(width, bytes, offset, 3, i, j, rs, gs, bs, as);
+                                pixels[width * i + j] = color;
                             }
                         }
                     } else {
                         // LowerLeft
                         for(int i = 0; i < height; i++) {
                             for(int j = 0; j < width; j++) {
-                                int index = offset + 3 * width * i + 3 * j;
-                                int b = bytes[index + 0] & 0xFF;
-                                int g = bytes[index + 1] & 0xFF;
-                                int r = bytes[index + 2] & 0xFF;
-                                int a = 0xFF;
-                                pixels[width * (height - i - 1) + j] = (r << rs) | (g << gs) | (b << bs) | (a << as);
+                                int color = getColorFromRGB(width, bytes, offset, 3, i, j, rs, gs, bs, as);
+                                pixels[width * (height - i - 1) + j] = color;
                             }
                         }
                     }
@@ -359,24 +271,16 @@ public final class TGAReader {
                         // UpperRight
                         for(int i = 0; i < height; i++) {
                             for(int j = 0; j < width; j++) {
-                                int index = offset + 4 * width * i + 4 * j;
-                                int b = bytes[index + 0] & 0xFF;
-                                int g = bytes[index + 1] & 0xFF;
-                                int r = bytes[index + 2] & 0xFF;
-                                int a = bytes[index + 3] & 0xFF;
-                                pixels[width * i + (width - j - 1)] = (r << rs) | (g << gs) | (b << bs) | (a << as);
+                                int color = getColorFromRGB(width, bytes, offset, 4, i, j, rs, gs, bs, as);
+                                pixels[width * i + (width - j - 1)] = color;
                             }
                         }
                     } else {
                         // LowerRight
                         for(int i = 0; i < height; i++) {
                             for(int j = 0; j < width; j++) {
-                                int index = offset + 4 * width * i + 4 * j;
-                                int b = bytes[index + 0] & 0xFF;
-                                int g = bytes[index + 1] & 0xFF;
-                                int r = bytes[index + 2] & 0xFF;
-                                int a = bytes[index + 3] & 0xFF;
-                                pixels[width * (height - i - 1) + (width - j - 1)] = (r << rs) | (g << gs) | (b << bs) | (a << as);
+                                int color = getColorFromRGB(width, bytes, offset, 4, i, j, rs, gs, bs, as);
+                                pixels[width * (height - i - 1) + (width - j - 1)] = color;
                             }
                         }
                     }
@@ -385,24 +289,16 @@ public final class TGAReader {
                         // UpperLeft
                         for(int i = 0; i < height; i++) {
                             for(int j = 0; j < width; j++) {
-                                int index = offset + 4 * width * i + 4 * j;
-                                int b = bytes[index + 0] & 0xFF;
-                                int g = bytes[index + 1] & 0xFF;
-                                int r = bytes[index + 2] & 0xFF;
-                                int a = bytes[index + 3] & 0xFF;
-                                pixels[width * i + j] = (r << rs) | (g << gs) | (b << bs) | (a << as);
+                                int color = getColorFromRGB(width, bytes, offset, 4, i, j, rs, gs, bs, as);
+                                pixels[width * i + j] = color;
                             }
                         }
                     } else {
                         // LowerLeft
                         for(int i = 0; i < height; i++) {
                             for(int j = 0; j < width; j++) {
-                                int index = offset + 4 * width * i + 4 * j;
-                                int b = bytes[index + 0] & 0xFF;
-                                int g = bytes[index + 1] & 0xFF;
-                                int r = bytes[index + 2] & 0xFF;
-                                int a = bytes[index + 3] & 0xFF;
-                                pixels[width * (height - i - 1) + j] = (r << rs) | (g << gs) | (b << bs) | (a << as);
+                                int color = getColorFromRGB(width, bytes, offset, 4, i, j, rs, gs, bs, as);
+                                pixels[width * (height - i - 1) + j] = color;
                             }
                         }
                     }
@@ -420,6 +316,7 @@ public final class TGAReader {
         int gs = order.greenShift;
         int bs = order.blueShift;
         int as = order.alphaShift;
+
         switch(depth) {
             case 8:
                 pixels = new int[width * height];
@@ -428,18 +325,16 @@ public final class TGAReader {
                         // UpperRight
                         for(int i = 0; i < height; i++) {
                             for(int j = 0; j < width; j++) {
-                                int e = bytes[offset + width * i + j] & 0xFF;
-                                int a = 0xFF;
-                                pixels[width * i + (width - j - 1)] = (e << rs) | (e << gs) | (e << bs) | (a << as);
+                                int color = getColorFromGrayscale(width, bytes, offset, 0, i, j, rs, bs, gs, as);
+                                pixels[width * i + (width - j - 1)] = color;
                             }
                         }
                     } else {
                         // LowerRight
                         for(int i = 0; i < height; i++) {
                             for(int j = 0; j < width; j++) {
-                                int e = bytes[offset + width * i + j] & 0xFF;
-                                int a = 0xFF;
-                                pixels[width * (height - i - 1) + (width - j - 1)] = (e << rs) | (e << gs) | (e << bs) | (a << as);
+                                int color = getColorFromGrayscale(width, bytes, offset, 0, i, j, rs, bs, gs, as);
+                                pixels[width * (height - i - 1) + (width - j - 1)] = color;
                             }
                         }
                     }
@@ -448,18 +343,16 @@ public final class TGAReader {
                         // UpperLeft
                         for(int i = 0; i < height; i++) {
                             for(int j = 0; j < width; j++) {
-                                int e = bytes[offset + width * i + j] & 0xFF;
-                                int a = 0xFF;
-                                pixels[width * i + j] = (e << rs) | (e << gs) | (e << bs) | (a << as);
+                                int color = getColorFromGrayscale(width, bytes, offset, 0, i, j, rs, bs, gs, as);
+                                pixels[width * i + j] = color;
                             }
                         }
                     } else {
                         // LowerLeft
                         for(int i = 0; i < height; i++) {
                             for(int j = 0; j < width; j++) {
-                                int e = bytes[offset + width * i + j] & 0xFF;
-                                int a = 0xFF;
-                                pixels[width * (height - i - 1) + j] = (e << rs) | (e << gs) | (e << bs) | (a << as);
+                                int color = getColorFromGrayscale(width, bytes, offset, 0, i, j, rs, bs, gs, as);
+                                pixels[width * (height - i - 1) + j] = color;
                             }
                         }
                     }
@@ -472,18 +365,16 @@ public final class TGAReader {
                         // UpperRight
                         for(int i = 0; i < height; i++) {
                             for(int j = 0; j < width; j++) {
-                                int e = bytes[offset + 2 * width * i + 2 * j + 0] & 0xFF;
-                                int a = bytes[offset + 2 * width * i + 2 * j + 1 ] & 0xFF;
-                                pixels[width * i + (width - j - 1)] = (e << rs) | (e << gs) | (e << bs) | (a << as);
+                                int color = getColorFromGrayscale(width, bytes, offset, 1, i, j, rs, bs, gs, as);
+                                pixels[width * i + (width - j - 1)] = color;
                             }
                         }
                     } else {
                         // LowerRight
                         for(int i = 0; i < height; i++) {
                             for(int j = 0; j < width; j++) {
-                                int e = bytes[offset + 2 * width * i + 2 * j + 0] & 0xFF;
-                                int a = bytes[offset + 2 * width * i + 2 * j + 1] & 0xFF;
-                                pixels[width * (height - i - 1) + (width - j - 1)] = (e << rs) | (e << gs) | (e << bs) | (a << as);
+                                int color = getColorFromGrayscale(width, bytes, offset, 1, i, j, rs, bs, gs, as);
+                                pixels[width * (height - i - 1) + (width - j - 1)] = color;
                             }
                         }
                     }
@@ -492,18 +383,16 @@ public final class TGAReader {
                         // UpperLeft
                         for(int i = 0; i < height; i++) {
                             for(int j = 0; j < width; j++) {
-                                int e = bytes[offset + 2 * width * i + 2 * j + 0] & 0xFF;
-                                int a = bytes[offset + 2 * width * i + 2 * j + 1] & 0xFF;
-                                pixels[width * i + j] = (e << rs) | (e << gs) | (e << bs) | (a << as);
+                                int color = getColorFromGrayscale(width, bytes, offset, 1, i, j, rs, bs, gs, as);
+                                pixels[width * i + j] = color;
                             }
                         }
                     } else {
                         // LowerLeft
                         for(int i = 0; i < height; i++) {
                             for(int j = 0; j < width; j++) {
-                                int e = bytes[offset + 2 * width * i + 2 * j + 0] & 0xFF;
-                                int a = bytes[offset + 2 * width * i + 2 * j + 1] & 0xFF;
-                                pixels[width * (height - i - 1) + j] = (e << rs) | (e << gs) | (e << bs) | (a << as);
+                                int color = getColorFromGrayscale(width, bytes, offset, 1, i, j, rs, bs, gs, as);
+                                pixels[width * (height - i - 1) + j] = color;
                             }
                         }
                     }
@@ -513,5 +402,53 @@ public final class TGAReader {
                 throw new IOException("Unsupported depth:"+depth);
         }
         return pixels;
+    }
+
+    private static int getColorFromColormap(int width, byte[] bytes, int offset, int indexValue, byte[] palette, int colormapOrigin, int loopI, int loopJ, int rs, int gs, int bs, int as) {
+        int colormapIndex = bytes[offset + width * loopI + loopJ] & 0xFF - colormapOrigin;
+        int color = 0xFFFFFFFF;
+        if(colormapIndex >= 0) {
+            int index = indexValue * colormapIndex + 18;
+            int b = palette[index + 0] & 0xFF;
+            int g = palette[index + 1] & 0xFF;
+            int r = palette[index + 2] & 0xFF;
+            int a;
+            if(indexValue == 3) {
+                a = 0xFF;
+            } else {
+                a = palette[index + 3] & 0xFF;
+            }
+            color = (r << rs) | (g << gs) | (b << bs) | (a << as);
+        }
+        return color;
+    }
+
+    private static int getColorFromRGB(int width, byte[] bytes, int offset, int indexValue, int loopI, int loopJ, int rs, int gs, int bs, int as) {
+        int index = offset + indexValue * width * loopI + indexValue * loopJ;
+        int b = bytes[index + 0] & 0xFF;
+        int g = bytes[index + 1] & 0xFF;
+        int r = bytes[index + 2] & 0xFF;
+        int a;
+        if(indexValue == 3) {
+            a = 0xFF;
+        } else {
+            a = bytes[index + 3] & 0xFF;
+        }
+        int color = (r << rs) | (g << gs) | (b << bs) | (a << as);
+        return color;
+    }
+
+    private static int getColorFromGrayscale(int width, byte[] bytes, int offset, int indexValue, int loopI, int loopJ, int rs, int gs, int bs, int as) {
+        int e;
+        int a;
+        if(indexValue == 0) {
+            e = bytes[offset + width * loopI + loopJ] & 0xFF;
+            a = 0xFF;
+        } else {
+            e = bytes[offset + 2 * width * loopI + 2 * loopJ + 0] & 0xFF;
+            a = bytes[offset + 2 * width * loopI + 2 * loopJ + 1] & 0xFF;
+        }
+        int color = (e << rs) | (e << gs) | (e << bs) | (a << as);
+        return color;
     }
 }

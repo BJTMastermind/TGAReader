@@ -16,26 +16,22 @@
 package net.npe.tga;
 
 public class TGAWriter {
-
-    public enum EncodeType {
-        NONE,   // No RLE encoding
-        RLE,    // RLE encoding
-        AUTO,   // auto
-    }
+    private static final int MODE_RESET = 0;
+    private static final int MODE_SELECT = 1;
+    private static final int MODE_SAME_COLOR = 2;
+    private static final int MODE_DIFFERENT_COLOR = 3;
+    private static final byte[] FOOTER = {0,0,0,0,0,0,0,0,84,82,85,69,86,73,83,73,79,78,45,88,70,73,76,69,46,0}; // TRUEVISION-XFILE
 
     public static byte[] write(int[] pixels, int width, int height, Order order) {
         return write(pixels, width, height, order, EncodeType.AUTO);
     }
 
     public static byte[] write(int[] pixels, int width, int height, Order order, EncodeType encodeType) {
-
         int elementCount = hasAlpha(pixels, order) ? 4 : 3;
-
         int rawSize = elementCount * pixels.length;
         int rleSize = getEncodeSize(pixels, width, elementCount);
-
-        boolean encoding;
         int dataSize;
+        boolean encoding;
 
         switch(encodeType) {
             case RLE:
@@ -108,13 +104,7 @@ public class TGAWriter {
         return index;
     }
 
-    private static final int MODE_RESET = 0;
-    private static final int MODE_SELECT = 1;
-    private static final int MODE_SAME_COLOR = 2;
-    private static final int MODE_DIFFERENT_COLOR = 3;
-
     private static int getEncodeSize(int[] pixels, int width, int elementCount) {
-
         int size = 0;
         int color = 0;
         int mode = MODE_RESET;
@@ -166,9 +156,8 @@ public class TGAWriter {
         }
 
         if(mode != MODE_RESET) {
-            System.out.println("Error!");
+            System.err.println("Error!");
         }
-
         return size;
     }
 
@@ -225,7 +214,6 @@ public class TGAWriter {
         if(mode != MODE_RESET) {
             System.err.println("Error!");
         }
-
         return index;
     }
 
@@ -264,6 +252,4 @@ public class TGAWriter {
         }
         return false;
     }
-
-    private static final byte[] FOOTER = {0,0,0,0,0,0,0,0,84,82,85,69,86,73,83,73,79,78,45,88,70,73,76,69,46,0}; // TRUEVISION-XFILE
 }

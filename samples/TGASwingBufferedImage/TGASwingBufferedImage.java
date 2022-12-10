@@ -13,6 +13,8 @@
  *
  */
 
+package samples.TGASwingBufferedImage;
+
 import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -27,7 +29,6 @@ import javax.swing.JPanel;
 import net.npe.tga.TGAReader;
 
 public class TGASwingBufferedImage {
-
     private static final String[] TGA_PATHS = {
         "images/rgb_LL.tga",
         "images/grayscale_LL.tga",
@@ -69,5 +70,4 @@ public class TGASwingBufferedImage {
         ImageIcon icon = new ImageIcon(image.getScaledInstance(128, 128, BufferedImage.SCALE_SMOOTH));
         return new JLabel(icon);
     }
-
 }

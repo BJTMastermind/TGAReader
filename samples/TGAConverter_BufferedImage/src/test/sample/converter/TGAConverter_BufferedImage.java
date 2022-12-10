@@ -1,4 +1,4 @@
-package samples.TGAConverter_BufferedImage;
+package test.sample.converter;
 
 import java.awt.image.BufferedImage;
 import java.io.File;

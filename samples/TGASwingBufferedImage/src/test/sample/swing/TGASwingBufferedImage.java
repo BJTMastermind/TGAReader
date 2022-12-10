@@ -13,7 +13,7 @@
  *
  */
 
-package samples.TGASwingBufferedImage;
+package test.sample.swing;
 
 import java.awt.Color;
 import java.awt.image.BufferedImage;

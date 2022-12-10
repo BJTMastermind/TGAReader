@@ -28,7 +28,7 @@ import javax.swing.JPanel;
 
 import net.npe.tga.TGAReader;
 
-public class TGASwingBufferedImage {
+public class TGASwingSample {
     private static final String[] TGA_PATHS = {
         "images/rgb_LL.tga",
         "images/grayscale_LL.tga",

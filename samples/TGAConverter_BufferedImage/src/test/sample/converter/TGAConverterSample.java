@@ -10,7 +10,7 @@ import javax.imageio.ImageIO;
 import net.npe.tga.TGAReader;
 import net.npe.tga.TGAWriter;
 
-public class TGAConverter_BufferedImage {
+public class TGAConverterSample {
 
     public static void main(String[] args) {
         String path = "images/Mandrill.bmp";

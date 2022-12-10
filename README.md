@@ -32,46 +32,31 @@ int height = TGAReader.getHeight(buffer); // Get TGA height.
 
 ### 4. Use created pixels in your application.
 
-#### 4.1. OpenGL Application
+#### 4.1. OpenGL (LWJGL 3) Application
 
-Sample code to create Java OpenGL texture.
+Sample code to allow Java OpenGL to render TGA texture using LWJGL 3.
 
 ```java
-public int createTGATexture() {
-    int texture = 0;
-
+private BufferedImage fromTGA(String filename) {
+    BufferedImage output;
     try {
-        FileInputStream fis = new FileInputStream(path);
-        byte[] buffer = new byte[fis.available()];
-        fis.read(buffer);
-        fis.close();
+        byte[] buffer = Files.readAllBytes(Paths.get(filename));
 
-        int[] pixels = TGAReader.read(buffer, TGAReader.ABGR);
+        int[] pixels = TGAReader.read(buffer, TGAReader.ARGB);
         int width = TGAReader.getWidth(buffer);
         int height = TGAReader.getHeight(buffer);
+        output = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        output.setRGB(0, 0, width, height, pixels, 0, width);
 
-        int[] textures = new int[1];
-        gl.glGenTextures(1, textures, 0);
-
-        gl.glEnable(GL_TEXTURE_2D);
-        gl.glBindTexture(GL_TEXTURE_2D, textures[0]);
-        gl.glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
-
-        IntBuffer texBuffer = IntBuffer.wrap(pixels);
-        gl.glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, texBuffer);
-
-        gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-
-        texture = textures[0];
-    } catch(Exception e) {
+        return output;
+    } catch (IOException e) {
         e.printStackTrace();
     }
-    return texture;
+    return null;
 }
 ```
+
+For more details, please refer to the sample project [here](https://github.com/BJTMastermind/TGAReader/tree/master/samples/TGAOpenGL_LWJGL/src/test/sample/opengl).
 
 #### 4.2. Swing Application
 
@@ -92,7 +77,7 @@ private static JLabel createTGALabel(String path) throws IOException {
 }
 ```
 
-For more details, please refer to the sample project [here](https://github.com/BJTMastermind/TGAReader/tree/master/samples/TGASwingBufferedImage).
+For more details, please refer to the sample project [here](https://github.com/BJTMastermind/TGAReader/tree/master/samples/TGASwingBufferedImage/src/test/sample/swing).
 
 ## Supported
 - Colormap(Indexed) Image, RGB Color Image, Grayscale Image
@@ -130,6 +115,6 @@ try {
 }
 ```
 
-For more details, please see the sample project [here](https://github.com/BJTMastermind/TGAReader/tree/master/samples/TGAConverter_BufferedImage).
+For more details, please see the sample project [here](https://github.com/BJTMastermind/TGAReader/tree/master/samples/TGAConverter_BufferedImage/src/test/sample/converter).
 
 Thank you for reading through. Enjoy your programming life!

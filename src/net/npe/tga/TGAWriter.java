@@ -58,11 +58,15 @@ public class TGAWriter {
         buffer[index++] = 0; // idFieldLength
         buffer[index++] = 0; // colormapType
         buffer[index++] = (byte) (encoding ? 10 : 2); // RGB or RGB_RLE
-        buffer[index++] = 0; buffer[index++] = 0; // colormapOrigin
-        buffer[index++] = 0; buffer[index++] = 0; // colormapLength
+        buffer[index++] = 0;
+        buffer[index++] = 0; // colormapOrigin
+        buffer[index++] = 0;
+        buffer[index++] = 0; // colormapLength
         buffer[index++] = 0; // colormapDepth
-        buffer[index++] = 0; buffer[index++] = 0; // originX
-        buffer[index++] = 0; buffer[index++] = 0; // originY
+        buffer[index++] = 0;
+        buffer[index++] = 0; // originX
+        buffer[index++] = 0;
+        buffer[index++] = 0; // originY
         buffer[index++] = (byte) ((width >> 0) & 0xFF); // width
         buffer[index++] = (byte) ((width >> 8) & 0xFF); // width
         buffer[index++] = (byte) ((height >> 0) & 0xFF); // height
@@ -80,7 +84,6 @@ public class TGAWriter {
         for(int i = 0; i < FOOTER.length; i++) {
             buffer[index++] = FOOTER[i];
         }
-
         return buffer;
     }
 

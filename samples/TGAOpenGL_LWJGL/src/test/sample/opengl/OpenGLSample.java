@@ -32,13 +32,11 @@ public class OpenGLSample {
 
         while(!glfwWindowShouldClose(window)) {
             glfwPollEvents();
-
             glClear(GL_COLOR_BUFFER_BIT);
 
             texture.bind();
 
             glBegin(GL_QUADS);
-
             glTexCoord2f(0, 0);
             glVertex2f(-0.5f, 0.5f);
             glTexCoord2f(1, 0);
@@ -47,7 +45,6 @@ public class OpenGLSample {
             glVertex2f(0.5f, -0.5f);
             glTexCoord2f(0, 1);
             glVertex2f(-0.5f, -0.5f);
-
             glEnd();
 
             glfwSwapBuffers(window);
